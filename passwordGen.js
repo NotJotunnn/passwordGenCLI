@@ -1,19 +1,25 @@
 // Simple npm package used to copy to clipboard!
 import clipboardy from 'clipboardy';
+import {writeFileSync, readFileSync} from 'fs';
 
 // Gets Arguments used into code
 const argsUsed = process.argv.slice(2);
 
 // Validates each input and only returns useful ones
 function argsValidation(value) {
-    // Category A
+    
+    // Category A (Used to specify the amount of each category)
     if(value.match(/[a,n,s,A]+@+[0-9]/g) != null) return [value.match(/[a,n,s,A]+@+[0-9]{1,3}/g)[0], 'a']
-
-    // Category B
-    else if(value.match(/[a,s,n,A]+/g) != null) return [value.match(/[a,s,n,A]+/g)[0], 'b']
-
-    // Category C (only used at the end of the code!)
+    
+    // Category B (Used to tell which categories to be implemented)
+    else if(value.match(/^[asnA]{1}/g) != null) return [value.match(/[a,s,n,A]/g)[0], 'b']
+    
+    // Category C (Used to tell amount of characters)
     else if(value.match(/[0-9]{1,3}/g) != null) return [value.match(/[0-9]{1,3}/g)[0], 'c']
+    
+    // Category D (Used to save passwords!)
+    else if(value.match(/use:[a-zA-Z@]*/g) != null) return [value.match(/use:[a-zA-Z@]*/g)[0], 'd']
+
     else return 'no result'
 }
 
@@ -32,11 +38,18 @@ if(argsUsed.length != 0) {
     // Array for when user uses open arguments
     const useX = []
 
+    // A pool of all characters that will be used on the password
+    const allCharacters = []
+
     // Useful arguments
     const validatedArgs = []
+
+    // Names set by the user 
+    const name = []
     
     // Checks each arguments for useful ones
     argsUsed.forEach(arg => {
+
         const value = argsValidation(arg)
         if(value != null && value != undefined && value != 'no result') validatedArgs.push(argsValidation(arg))
     });
@@ -44,6 +57,7 @@ if(argsUsed.length != 0) {
     if(validatedArgs.length != 0) {
 
         validatedArgs.forEach(arg => {
+
 
             // It gets all validated arguments that join the category a (i.e.: The ones in which the users specified the amount)
             if(arg[1] == 'a') {
@@ -59,7 +73,7 @@ if(argsUsed.length != 0) {
                             arrs[0].splice(randomValue, 1)
                         }
                         else {
-                            useX.push(arrs[0][randomValue].toUpperCase())
+                            useX.push(arrs[0][randomValue]())
                         }
                     }
                 }
@@ -74,7 +88,7 @@ if(argsUsed.length != 0) {
                             arrs[2].splice(randomValue, 1)
                         }
                         else {
-                            useX.push(arrs[0][randomValue].toUpperCase())
+                            useX.push(arrs[2][randomValue]())
                         }
                     }
                 }
@@ -89,7 +103,7 @@ if(argsUsed.length != 0) {
                             arrs[1].splice(randomValue, 1)
                         }
                         else {
-                            useX.push(arrs[0][randomValue].toUpperCase())
+                            useX.push(arrs[1][randomValue]())
                         }
                     }
                 }
@@ -118,23 +132,29 @@ if(argsUsed.length != 0) {
                     });
                 }
 
-                if(arg[0] == 'A') {
+                else if(arg[0] == 'A') {
                     arrs[0].forEach(arr => {
                         useX.push(arr.toString().toUpperCase())
                     });
                 }
 
-                if(arg[0] == 'n') {
+                else if(arg[0] == 'n') {
                     arrs[1].forEach(arr => {
                         useX.push(arr)
                     });
                 }
 
-                if(arg[0] == 's') {
+                else if(arg[0] == 's') {
                     arrs[2].forEach(arr => {
                         useX.push(arr)
                     });
                 }
+            }
+
+            // It gets the name to save as
+            if(arg[1] == 'd') {
+                const argsArr = arg[0].split(':', 2)
+                name.push(argsArr[1])
             }
 
         });
@@ -165,10 +185,9 @@ if(argsUsed.length != 0) {
             for(var i = 0; i < size; i++) {
                 const randomValue = Math.floor(Math.random() * useXSpecific.length)
        
-                passwordOutput += useXSpecific[randomValue]
+                allCharacters.push(useXSpecific[randomValue])
                 useXSpecific.splice(randomValue, 1)
             }
-            console.log('Specified: ', passwordOutput)
         }
 
         // This second condition checks if there are any non-specified values to add up, otherwise it moves on
@@ -178,14 +197,56 @@ if(argsUsed.length != 0) {
             for(var i = 0; i < (characters != 0 ? characters : characters = 32); i++) {
                 const randomValue = Math.floor(Math.random() * useX.length)
        
-                passwordOutput += useX[randomValue]
+                allCharacters.push(useX[randomValue])
             }
-            console.log('With randomized: ', passwordOutput)
+
+            const overallSize = allCharacters.length
+
+
+            for(var k = 0; k < overallSize; k++) {
+                const randomValue = Math.floor(Math.random() * allCharacters.length)
+
+                passwordOutput += allCharacters[randomValue]
+                allCharacters.splice(randomValue, 1)
+            }
+
+            console.log()
+
+            console.log('Password: ', passwordOutput)
+
+
+            if(name.length != 0) {
+
+                let saveName = name[0].split('@', 2)
+                let printname
+
+                if(saveName.length > 1) {
+                    printname = `${saveName[0]} - ${saveName[1]}`
+                } else {
+                    printname = `${saveName[0]}`
+            }
+
+            const module = 
+`
+=====================================================================================================
+            ${printname}
+-----------------------------------------------------------------------------------------------------
+            Password: ${passwordOutput}
+=====================================================================================================
+
+`
+
+            const savedPasswords = readFileSync('./passwords.txt');
+            const array = savedPasswords.toString();
+
+            writeFileSync('./passwords.txt', array + module)
+        }
 
             // Copies above value to clipboard!
             clipboardy.writeSync(passwordOutput)
         }
         console.log('Size: ', characters + size)
+        console.log()
 
         // Validation
     } else console.log('Add working arguments')
