@@ -215,7 +215,7 @@ if(argsUsed.length != 0) {
             console.log('Password: ', passwordOutput)
 
 
-            if(name.length != 0) {
+            if(name.length != 0 && overallSize != 0) {
 
                 let saveName = name[0].split('@', 2)
                 let printname
